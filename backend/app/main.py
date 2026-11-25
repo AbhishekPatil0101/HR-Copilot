@@ -1,8 +1,14 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.models import Employee, UserRole
-from app.routers import auth
+from app.routers import auth, me, employees, policies, chat
 from app.security import get_current_user
+
+UI_HTML_PATH = Path(__file__).resolve().parent / "static" / "ui.html"
 
 app = FastAPI(
     title="HR Copilot API",
@@ -10,8 +16,27 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Enable CORS for local React frontend development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Register routers
 app.include_router(auth.router)
+app.include_router(me.router)
+app.include_router(employees.router)
+app.include_router(policies.router)
+app.include_router(chat.router)
+
+
+@app.get("/ui", include_in_schema=False)
+def serve_ui():
+    """Serve the zero-build React Chat UI directly from FastAPI."""
+    return FileResponse(UI_HTML_PATH)
 
 
 @app.get("/")
